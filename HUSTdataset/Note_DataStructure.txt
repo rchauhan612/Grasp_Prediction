@@ -1,0 +1,13 @@
+#################### Experimental procedure #####################
+The movement data of human hand covers 30 subjects (15 males and 15 females). Subjects were seated near the edge of a table and placed their right arm on the table in a comfortable posture. They were instructed to perform 33 types of tasks (Feix taxonomy) using a large number of objects, which were chosen from the most common objects in daily life and had a large range of sizes and shapes, such as cylinders, disks, spheres and cards. In each type of task, the subjects were asked to grasp three objects of different sizes or shapes separately, and each test was repeated on every object three times to depress random error. At the beginning of each trial, objects were placed beyond the subjects¡¯ suitable reaching distance, and the subjects extended their right hand in a natural full extension. Upon hearing the ¡°go¡± command (in Chinese), the subjects started to grasp the object at a self-paced speed. They were allowed to move the proximal arm in accordance with the hand motion during the experiment.
+################################################################
+
+The folder structure is Subject-Task-Object.
+
+In each subfolder, the files "1.txt", "2.txt' and "3.txt' separately store the movement data of each trial.
+
+In the movement data of each trial, the first column represents the time (second), and the next 16 columns represent the angles (radian) of 16 joints during every grasping experiment. These joints are T_CMC, T_ABD, T_MCP, T_IP, I_MCP, I_PIP, I_DIP, M_MCP, M_PIP, M_DIP, R_MCP, R_PIP, R_DIP, L_MCP, L_PIP, L_DIP (refer to the figure Joints_CyberGloveSensors, T, I, M, R, L represent thumb, index, middle, ring and little fingers.)
+
+-----------------------------------------------------------------
+Cite:
+Liu M-J, Xiong C-H, Xiong L, Huang X-L (2016) Biomechanical Characteristics of Hand Coordination in Grasping Activities of Daily Living. PLoS ONE 11(1): e0146193. doi: 10.1371/journal.pone.0146193 

@@ -1,0 +1,22 @@
+def kron_del(x0, x1):
+    return x0==x2
+
+def kern_fun(x0, x1, hypr):
+    return (hypr[0]**2) * exp((-abs(x0-x1)**2) / (2*hypr[1]**2)) + kron_del(x0, x1) / hypr[2]
+
+def kern(Y_I, hypr):
+    m = len(Y)
+    K = np.zeros([m, m])
+    for i in range(0, m):
+        for j in range(0, m):
+            K[i, j] = kern_fun(Y_I[i], Y_I[j], hypr)
+
+def as_likelihood(j, hypr):
+    K = kern(j)
+    return (1 / ((2 * pi)**(n/2) * abs(K)**.5) * exp(-.5 * j.T * np.linalg.inv(K) * j)
+
+def proj_prob(orig, red, j, hypr):
+    K = kern(red_active[:, j], hypr)
+    f = orig.T * np.linalg.inv(K) * K[:, j]
+    var = K[j, j] - k[:, j].T * np.linalg.inv(K) * k[:, j]
+    return exp(-(dsahLKSJSFHalskjdfhblksadjflkajsfsa)) / sqrt(2*pi*var) 
