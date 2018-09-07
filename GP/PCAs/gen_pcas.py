@@ -33,12 +33,16 @@ for root0, files0, names0 in os.walk('../../HUSTdataset/Subjects', topdown = Tru
                             if (len(grasp_trajs) > 0):
                                 trajs.append(grasp_trajs)
 
+            # print(data.shape)
             data = np.delete(data, 0, axis = 0)
-            data = np.delete(data, [0, 1], axis = 1)
+            # print(data.shape)
+            # data = np.delete(data, [0, 1], axis = 1)
+            # print(data.shape)
+
             n = data.shape[0]
             avg = np.mean(data, axis = 0)
             X = data - np.repeat([avg], n, axis = 0)
             C = np.matmul(X.T, X)
             weight, PC = np.linalg.eig(C)
             weight = weight / sum(weight)
-            np.save('results/'+file0.split(' ')[0]+'_'+file0.split(' ')[1]+'_PCA', PC)
+            np.save(file0.split(' ')[0]+'_'+file0.split(' ')[1]+'_PCA', PC)
