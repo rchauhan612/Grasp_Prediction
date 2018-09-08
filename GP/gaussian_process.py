@@ -156,6 +156,14 @@ class GP:
                 temp_y.append(arr_y[temp_loc[-1]])
             return(True, np.array(temp_loc), np.array(temp_x), np.array(temp_y))
 
+    def plot_process(self, ax, c):
+        x_plot = np.linspace(0, 1, len(self.cont_sample[0]))
+        y_plot = self.cont_sample[0]
+        y_plot_upper = y_plot + np.sqrt(self.cont_sample[1])
+        y_plot_lower = y_plot - np.sqrt(self.cont_sample[1])
+        ax.fill_between(x_plot, y_plot_upper, y_plot_lower, color = c, alpha = 0.2)
+        ax.plot(x_plot, y_plot, color = c, linestyle = 'dashed')
+
     def plot_pt(self, t, pt, m, S):
         x = m + np.linspace(-3*sqrt(S), 3*sqrt(S), 50)
         f = exp(-((x-m)**2) / (2*S)) / sqrt(2*pi*S)
