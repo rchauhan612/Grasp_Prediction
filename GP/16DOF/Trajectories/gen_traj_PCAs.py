@@ -21,7 +21,7 @@ for root0, files0, names0 in os.walk('../../../HUSTdataset/Subjects', topdown = 
                 os.makedirs('processed/unscaled/'+f_temp)
             if not os.path.exists('processed/scaled/'+f_temp):
                 os.makedirs('processed/scaled/'+f_temp)    #only needed for the first run to make the directories
-            subject_path = '.././../HUSTdataset/Subjects' + '/' + file0
+            subject_path = '../../../HUSTdataset/Subjects' + '/' + file0
             PC = np.load('../PCAs/'+f_temp.split(' ')[0]+'_'+f_temp.split(' ')[1]+'_PCA.npy')
             for root, files, names in os.walk(subject_path, topdown = True):
                 for file in files:

@@ -36,13 +36,15 @@ for root0, files0, names0 in os.walk('../../../HUSTdataset/Subjects', topdown = 
             # print(data.shape)
             data = np.delete(data, 0, axis = 0)
             # print(data.shape)
-            # data = np.delete(data, [0, 1], axis = 1)
+            # data = np.delete(data, [0], axis = 1)
             # print(data.shape)
 
             n = data.shape[0]
             avg = np.mean(data, axis = 0)
+            print(avg)
             X = data - np.repeat([avg], n, axis = 0)
             C = np.matmul(X.T, X)
             weight, PC = np.linalg.eig(C)
             weight = weight / sum(weight)
+            print(weight)
             np.save(file0.split(' ')[0]+'_'+file0.split(' ')[1]+'_PCA', PC)

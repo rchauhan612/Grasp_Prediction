@@ -2,7 +2,7 @@ import numpy as np
 from scipy import signal
 import os
 import sys
-sys.path.append('..')
+sys.path.append('../..')
 from gaussian_process import GP
 import matplotlib.pyplot as plt
 import pickle

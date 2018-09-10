@@ -32,9 +32,9 @@ for root0, files0, names0 in os.walk('../../../HUSTdataset/Subjects', topdown = 
                                     data = np.append(data, [r[r.shape[0]-1, 1:d+1]], axis=0) # only end configuration
                             if (len(grasp_trajs) > 0):
                                 trajs.append(grasp_trajs)
-
             # print(data.shape)
-            data = np.delete(data, 0, axis = 0)
+            data = np.delete(data, 0, axis = 0) #remove the thumb joints except for MCP and IP
+            data = np.delete(data, [0, 1], axis = 1)
             # print(data.shape)
             # data = np.delete(data, [0, 1], axis = 1)
             # print(data.shape)
