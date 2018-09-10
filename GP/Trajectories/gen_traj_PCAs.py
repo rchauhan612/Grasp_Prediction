@@ -5,10 +5,10 @@ import os
 trajs = []
 q = 6
 sample_size = 20
-for root0, files0, names0 in os.walk('../../HUSTdataset/Subjects', topdown = True):
+for root0, files0, names0 in os.walk('../../../HUSTdataset/Subjects', topdown = True):
     cnt0 = 0
     for file0 in files0:
-        if (os.path.exists(os.path.join('../../HUSTdataset/Subjects', file0))):
+        if (os.path.exists(os.path.join('../../../HUSTdataset/Subjects', file0))):
             # print(file0)
             f_temp = file0.split(' ')[0] + ' ' + file0.split(' ')[1] # jsut formatting the folder names correctly here bc im too lazy to go back and do it for all of them in the actual location
             if not os.path.exists('raw/'+f_temp):
@@ -21,7 +21,7 @@ for root0, files0, names0 in os.walk('../../HUSTdataset/Subjects', topdown = Tru
                 os.makedirs('processed/unscaled/'+f_temp)
             if not os.path.exists('processed/scaled/'+f_temp):
                 os.makedirs('processed/scaled/'+f_temp)    #only needed for the first run to make the directories
-            subject_path = '../../HUSTdataset/Subjects' + '/' + file0
+            subject_path = '../../../HUSTdataset/Subjects' + '/' + file0
             PC = np.load('../PCAs/'+f_temp.split(' ')[0]+'_'+f_temp.split(' ')[1]+'_PCA.npy')
             for root, files, names in os.walk(subject_path, topdown = True):
                 for file in files:

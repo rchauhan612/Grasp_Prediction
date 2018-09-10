@@ -16,7 +16,7 @@ for file in files:
                 for w in range(0, 3):
                     temp[1+w+(j-1)*3] = temp2[j] * coupling[w]
             temp[13] = temp2[5]
-            temp[14] = temp2[5] * 2
+            temp[14] = temp2[5] * 1.1
             # print(temp)
             angles = np.append(angles, [temp], axis = 0)
         np.save('results/expanded/'+file.split('.')[0]+'_expanded', angles)
