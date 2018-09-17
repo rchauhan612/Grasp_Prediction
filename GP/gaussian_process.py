@@ -1,6 +1,6 @@
 import numpy as np
 from numpy import (exp, absolute, pi, log, sqrt, mean)
-
+from scipy.interpolate import UnivariateSpline
 
 class GP:
     def __init__(self, x, var):
@@ -158,11 +158,16 @@ class GP:
 
     def plot_process(self, ax, c):
         x_plot = np.linspace(0, 1, len(self.cont_sample[0]))
+        x_plot_ss = np.linspace(0, 1, 1*len(self.cont_sample[0]))
         y_plot = self.cont_sample[0]
         y_plot_upper = y_plot + np.sqrt(self.cont_sample[1])
+        # s = UnivariateSpline(x_plot, y_plot_upper, None)
+        # y_plot_upper = s(x_plot_ss)
         y_plot_lower = y_plot - np.sqrt(self.cont_sample[1])
-        ax.fill_between(x_plot, y_plot_upper, y_plot_lower, color = c, alpha = 0.2)
-        ax.plot(x_plot, y_plot, color = c, linestyle = 'dashed')
+        # s = UnivariateSpline(x_plot, y_plot_lower, None)
+        # y_plot_lower = s(x_plot_ss)
+        ax.fill_between(x_plot_ss[:-1], y_plot_upper[:-1], y_plot_lower[:-1], color = c, alpha = 0.2)
+        ax.plot(x_plot[:-1], y_plot[:-1], color = c, linestyle = 'dashed')
 
     def plot_pt(self, t, pt, m, S):
         x = m + np.linspace(-3*sqrt(S), 3*sqrt(S), 50)
