@@ -31,7 +31,8 @@ for file in os.listdir(file_loc):
 
 grasp_names = list(set(grasp_names))
 grasp_data = [None] * len(grasp_names)
-grasp_gps = [[None] * 5] * len(grasp_names)
+# grasp_gps = [[None] * 5] * len(grasp_names)
+grasp_gp_list = []
 trial_len = 40 #it just is
 plt.figure(dpi = 60)
 for i in range(len(grasp_names)):
@@ -51,18 +52,26 @@ for i in range(len(grasp_names)):
             time_step = np.vstack((time_step, np.pi*grasp_data[i][w][k, 1:-1]/180))
         grasp_mean[k, :] = np.mean(time_step, axis = 0)
         grasp_var[k, :] = np.var(time_step, axis = 0)
+
+    grasp_gp = []
     for k in range(5):
-        gp = GP(np.arange(0, trial_len), grasp_var[:, k])
+        gp = GP(np.arange(0, trial_len), .1*grasp_var[:, k])
         gp.opt(grasp_mean[:, k])
         gp.eval_continuous(45)
-        grasp_gps[i][k] = gp
+        grasp_gp.append(gp)
         gp.plot_process(ax, colors[k])
     plt.title(grasp_names[i])
     plt.xlim([0, 1])
     plt.xlabel('Grasp Progress(%)')
     plt.ylim([-2, 4])
     plt.ylabel('PC Magnitude')
+
+    grasp_gp_list.append(grasp_gp)
 outfile = open('glove_GPs', 'wb')
-pickle.dump(grasp_gps, outfile)
+subject_data = [grasp_names, grasp_gp_list]
+pickle.dump(subject_data, outfile)
 outfile.close()
-plt.show()
+
+if (len(sys.argv) > 1):
+    if (sys.argv[1] == 'plot'):
+        plt.show()

@@ -22,4 +22,5 @@ weight = np.real(weight)
 PC = np.real(PC)
 weight = weight / sum(weight)
 
+np.save('PCAs/Glove_PCA_weights', weight)
 np.save('PCAs/Glove_PCA', PC)
