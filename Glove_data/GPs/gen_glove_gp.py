@@ -22,18 +22,20 @@ for file in os.listdir(file_loc):
     if file.split('.')[1] == 'npy':
         files.append(file)
         temp = file.split('_')[0]
-        for i in range(len(temp)):
-            if(not is_number(temp[i])):
-                pass
-            else:
-                break
-        grasp_names.append(temp[:i])
+        # for i in range(len(temp)):
+        #     if(not is_number(temp[i])):
+        #         pass
+        #     else:
+        #         break
+        # grasp_names.append(temp[:i])
+        grasp_names.append(temp)
+
 
 grasp_names = list(set(grasp_names))
 grasp_data = [None] * len(grasp_names)
 # grasp_gps = [[None] * 5] * len(grasp_names)
 grasp_gp_list = []
-trial_len = 40 #it just is
+trial_len = 96 #it just is
 plt.figure(dpi = 60)
 for i in range(len(grasp_names)):
     plt.subplot(5, 1, i+1)
@@ -57,7 +59,7 @@ for i in range(len(grasp_names)):
     for k in range(5):
         gp = GP(np.arange(0, trial_len), .1*grasp_var[:, k])
         gp.opt(grasp_mean[:, k])
-        gp.eval_continuous(45)
+        gp.eval_continuous(200)
         grasp_gp.append(gp)
         gp.plot_process(ax, colors[k])
     plt.title(grasp_names[i])
