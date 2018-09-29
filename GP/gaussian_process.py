@@ -169,6 +169,10 @@ class GP:
         ax.fill_between(x_plot_ss[:-1], y_plot_upper[:-1], y_plot_lower[:-1], color = c, alpha = 0.2)
         ax.plot(x_plot[:-1], y_plot[:-1], color = c, linestyle = 'dashed')
 
+    def diversify(self, scale):
+        for i in range(len(self.sample_values_y[0])):
+            self.sample_values_y[0][i] *= scale
+
     def plot_pt(self, t, pt, m, S):
         x = m + np.linspace(-3*sqrt(S), 3*sqrt(S), 50)
         f = exp(-((x-m)**2) / (2*S)) / sqrt(2*pi*S)

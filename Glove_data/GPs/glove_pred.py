@@ -15,7 +15,7 @@ def predict_trial(gp_names, gp_list, weight, trial_data):
     time = trial_data[:, 0]
     time = 65*time / time[-1] # remove this when time scaling gets implemented
     traj = np.pi*trial_data[:, 1:q+1]/180. #the pca was done in deg, moving to radians
-    for i in range(1, int(.5*l)):
+    for i in range(1, int(.3*l)):
         grasp_llhs = np.zeros(len(grasp_gps))
         for j in range(len(grasp_gps)):
             grasp_gp = grasp_gps[j]
@@ -23,7 +23,7 @@ def predict_trial(gp_names, gp_list, weight, trial_data):
             for pc in range(q):
                 # print(grasp_gp[pc])
                 # print(grasp_gp[pc].sample_values_y[0])
-                grasp_llhs[j] += weight[pc] * grasp_gp[pc].calc_likelihood(1, 0, time[:i], traj[:i, pc], False, 5)
+                grasp_llhs[j] += weight[pc] * grasp_gp[pc].calc_likelihood(1, 0, time[:i], 5*traj[:i, pc], False, 5)
                 # print(j, pc, grasp_gp[pc].calc_likelihood(1, 0, time[:i], traj[:i, pc], False, 5))
 
     # print(grasp_llhs, gp_names[np.argmax(grasp_llhs)])

@@ -57,9 +57,10 @@ for i in range(len(grasp_names)):
 
     grasp_gp = []
     for k in range(5):
-        gp = GP(np.arange(0, trial_len), .1*grasp_var[:, k])
+        gp = GP(np.arange(0, trial_len), 1*grasp_var[:, k])
         gp.opt(grasp_mean[:, k])
         gp.eval_continuous(200)
+        gp.diversify(5)
         grasp_gp.append(gp)
         gp.plot_process(ax, colors[k])
     plt.title(grasp_names[i])
