@@ -52,8 +52,14 @@ from sklearn import cluster
 
 
 # classifier = KNeighborsClassifier(n_neighbors=5)
-n_clusters = 8
+
+u = np.linspace(0, np.pi, 30)
+v = np.linspace(0, 2 * np.pi, 30)
+
+n_clusters = 2
 classifier = cluster.KMeans(n_clusters = n_clusters)
+
+colors = plt.cm.get_cmap('tab10')(np.linspace(0,0.6,n_clusters))
 
 path = '../Trajectories/final_configs'
 
@@ -71,19 +77,41 @@ for trial in trials:
 
     # print((g_cluster_labels))
 
-    plt.figure(projection = '3d')
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    cnt = 0
     for i in range(n_clusters):
         members = y[g_cluster_labels == i]
+        members_u = set(members)
         n_members = len(members)
-        # print(g_cluster_labels)
-        print(x[g_cluster_labels==i, 0], x[g_cluster_labels==i, 1])
-        plt.scatter(x[g_cluster_labels==i,0], x[g_cluster_labels==i,1], x[g_cluster_labels==i,2])#, facecolors = 'none')
-        # plt.scatter([i]*n_members, members)
+        n_members_u = len(members_u)
+        mean = np.mean(x[g_cluster_labels == i, :], axis = 0)
+        var = 2*np.sqrt(np.var(x[g_cluster_labels == i, :], axis = 0))
+        # print(x[g_cluster_labels == i, :])
+        print('Group', i, 'Members', members_u, 'Unique Count', n_members_u)
+        print('\tMean', mean)
+        print('\tVar', var)
+        # input('')
+        # print(x[g_cluster_labels==i, 0], x[g_cluster_labels==i, 1])
 
-    plt.show()
+        x_plot = mean[0] + var[0]*np.outer(np.sin(u), np.sin(v))
+        y_plot = mean[1] + var[1]*np.outer(np.sin(u), np.cos(v))
+        z_plot = mean[2] + var[2]*np.outer(np.cos(u), np.ones_like(v))
+        ax.plot_surface(x_plot, y_plot, z_plot, alpha = .2, color = colors[i])
+        ax.scatter(mean[0], mean[1], mean[2], color = colors[i])
+        ax.scatter(x[g_cluster_labels==i,0], x[g_cluster_labels==i,1], x[g_cluster_labels==i,2], label = i, color = colors[i], s = 1)#, facecolors = 'none')
+        cnt+= n_members_u
+
+    plt.title(trial)
+    ax.legend()
+    ax.set_zticks([])
+    ax.set_xticks([])
+    ax.set_yticks([])
+    plt.axis('equal')
+    # plt.show()
+    print('Total grasps', cnt)
     input(' ')
     plt.close('all')
-
     # X_train, X_test, y_train, y_test = train_test_split( x, y, test_size = 0.25, random_state=0)
     # classifier.fit(X_train, y_train)
     # y_pred = classifier.predict(X_test)

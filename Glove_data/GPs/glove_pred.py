@@ -15,7 +15,7 @@ def predict_trial(gp_names, gp_list, weight, trial_data):
     time = trial_data[:, 0]
     time = 65*time / time[-1] # remove this when time scaling gets implemented
     traj = np.pi*trial_data[:, 1:q+1]/180. #the pca was done in deg, moving to radians
-    for i in range(1, int(1*l)):
+    for i in range(1, int(.30*l)):
         grasp_llhs = np.zeros(len(grasp_gps))
         for j in range(len(grasp_gps)):
             grasp_gp = grasp_gps[j]
@@ -55,6 +55,7 @@ print(grasp_names)
 weight = np.ones(5) * .2
 acc= 0
 cnt = 0
+results = []
 for i in range(len(trial_data_list)):
     cnt +=1
     # if i == 1:
@@ -63,7 +64,12 @@ for i in range(len(trial_data_list)):
     # corr = trial_names[i][:re.search('\d', trial_names[i]).start()] == pred
     corr = trial_names[i].split('_')[0] == pred
     acc += int(corr)
-    if not False:
-        print(trial_names[i].split('_')[0], '\t', pred, '\t', corr)
+    results.append([trial_names[i].split('_')[0], pred])
 
+    # if not False:
+    #     print(trial_names[i].split('_')[0], '\t', pred, '\t', corr)
+
+results = np.array(results)
+print(results, results.size)
+np.save('glove_pred_results.npy', results)
 print(100*acc/cnt)
