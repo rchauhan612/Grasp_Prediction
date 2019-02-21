@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import sys
-sys.path.append('../../GP/')
+sys.path.append('../../../GP/')
 from gaussian_process import GP
 import pickle
 import matplotlib.pyplot as plt
