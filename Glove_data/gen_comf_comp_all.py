@@ -42,9 +42,14 @@ def plot_confusion_matrix(cm, classes,
     plt.tight_layout()
 
 
-res = np.load('glove_pred_results.npy')
+subjects = ['Ravi', 'Bijo', 'Dan']
+res = np.array([[0, 0]])
+for name in subjects:
+    res_temp = np.load(name + '/GPs/glove_pred_results.npy')
+    res = np.vstack((res, res_temp))
 # Compute confusion matrix
-print(res)
+res = res[1:]
+print(res.shape)
 
 test = [res[i][0] for i in range(len(res))]
 pred = [res[i][1] for i in range(len(res))]
