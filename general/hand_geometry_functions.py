@@ -55,9 +55,9 @@ def calculate_joint_locs(joint_angles, phalanx_lengths = default_phalanx_lengths
 
     return joint_locs
 
-def plot_hand(joint_locs, _color = 'black'):
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+def plot_hand(joint_locs, _color = 'black', ax = plt.figure().add_subplot(111, projection='3d')):
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
     for finger in joint_locs:
         ax.plot(xs = finger[:, 0], ys = finger[:, 1], zs = finger[:, 2], color = _color)
 
@@ -72,9 +72,9 @@ def plot_hand(joint_locs, _color = 'black'):
 
     axisEqual3D(ax)
 
-    plt.show()
+    # plt.show()
 
-    return fig, ax
+    return ax
 
 def axisEqual3D(ax):
     extents = np.array([getattr(ax, 'get_{}lim'.format(dim))() for dim in 'xyz'])
