@@ -56,6 +56,7 @@ for epoch in range(EPOCHS):
         bar.update(1)
         with tf.GradientTape() as tape:
             predictions = model(inp)
+            # print(inp.shape, predictions.shape)
             loss = compute_loss(target, predictions)
 
         grads = tape.gradient(loss, model.trainable_variables)
