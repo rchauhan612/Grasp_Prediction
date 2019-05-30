@@ -1,3 +1,2 @@
 # the single matrix containing all of the motion data
-RNN/dataset_data.npy
-RNN/dataset_labels.npy
+*.npy

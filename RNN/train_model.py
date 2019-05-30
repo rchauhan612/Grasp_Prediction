@@ -10,14 +10,15 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 seq_len = 20
-rnn_units = 10
+rnn_units = 50
 batch_size = 64
 
 checkpoint_dir = './training_checkpoints'
 checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
 
 raw_data = np.load('dataset_data.npy')
-raw_data_stacked = np.reshape(raw_data.astype('float32'), (raw_data.shape[0]*raw_data.shape[1], raw_data.shape[2]))
+# raw_data_stacked = np.reshape(raw_data.astype('float32'), (raw_data.shape[0]*raw_data.shape[1], raw_data.shape[2]))
+raw_data_stacked = np.load('dataset_data_2.npy').astype('float32')
 
 n_dims = raw_data_stacked.shape[1]
 
@@ -42,7 +43,7 @@ model = tf.keras.Sequential([
 
 model.build((seq_len, n_dims))
 
-EPOCHS = 5
+EPOCHS = 8
 optimizer = tf.train.AdamOptimizer()
 
 history = []
@@ -51,7 +52,7 @@ plt.figure()
 for epoch in range(EPOCHS):
     print('EPOCH:', epoch)
     hidden = model.reset_states()
-    bar = tqdm(total = 1215, position = 0)
+    bar = tqdm(total = 286, position = 0)
     for i, (inp, target) in enumerate(dataset):
         bar.update(1)
         with tf.GradientTape() as tape:
