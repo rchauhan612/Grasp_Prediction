@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 seq_len = 20
 rnn_units = 200
-batch_size = 64
+batch_size = 32
 
 checkpoint_dir = './training_checkpoints'
 checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
@@ -48,7 +48,7 @@ model = tf.keras.Sequential([
 
 model.build((seq_len, n_dims))
 
-EPOCHS = 15
+EPOCHS = 7
 optimizer = tf.train.AdamOptimizer()
 
 train_hist = []
@@ -70,13 +70,6 @@ for epoch in range(EPOCHS):
         optimizer.apply_gradients(zip(grads, model.trainable_variables))
         train_hist.append(train_loss.numpy().mean())
         test_hist.append(test_loss.numpy().mean())
-
-
-    # for i, (inp, target) in enumerate(test_dataset):
-    #     print(i)
-    #     predictions = model(inp)
-    #     test_loss = compute_loss(target, predictions)
-    #     test_hist.append(train_loss.numpy().mean())
 
     model.save_weights(checkpoint_prefix.format(epoch=epoch))
 

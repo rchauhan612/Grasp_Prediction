@@ -26,6 +26,8 @@ for i, d in enumerate(data):
 
 data = np.concatenate(data, axis = 0)
 training_data = np.concatenate(training_data, axis = 0)
+with open('test_data_seperate.pickle', 'wb') as output_file:
+    pickle.dump(testing_data, output_file) 
 testing_data = np.concatenate(testing_data, axis = 0)
 
 np.save('dataset_data', data)

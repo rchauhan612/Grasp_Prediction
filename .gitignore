@@ -1,2 +1,3 @@
 # the single matrix containing all of the motion data
 *.npy
+*.pickle
