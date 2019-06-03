@@ -15,13 +15,12 @@ sys.path.insert(0, '../general/')
 from hand_geometry_functions import *
 
 seq_len = 20
-rnn_units = 200
-batch_size = 32
+rnn_units = 500
 
 pred_percent = 2
 seed_percent = .30
 
-test_trial_num = 14
+test_trial_num = 4
 
 n_inc = 9
 
@@ -62,7 +61,7 @@ motion_generated = input_eval
 for i in tqdm(range(pred_len-seed_len)):
   pred = model(tf.expand_dims(motion_generated, 0))
   motion_generated = np.vstack((motion_generated, np.squeeze(pred)[-1]))
- 
+
 motion_generated = np.array(motion_generated)
 
 plt.ion()
