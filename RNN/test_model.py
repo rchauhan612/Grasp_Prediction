@@ -14,7 +14,7 @@ import sys
 sys.path.insert(0, '../general/')
 from hand_geometry_functions import *
 
-seq_len = 5
+seq_len = 20
 rnn_units = 100
 
 pred_percent = 2
@@ -31,36 +31,28 @@ with open('test_data_seperate.pickle', 'rb') as input_file:
 test_trial_num = np.random.randint(len(raw_data))
 test_trial = raw_data[test_trial_num]
 test_conf = raw_data[test_trial_num][-1]
-# print(test_trial)
-# print(raw_data.shape)
 
-# raw_data_stacked = np.reshape(test_trial.astype('float32'), (test_trial.shape[0]*test_trial.shape[1], test_trial.shape[2]))
 n_dims = test_trial.shape[1]
 seed_len = np.floor(test_trial.shape[0] * seed_percent).astype(int)
 pred_len = np.floor(test_trial.shape[0] * pred_percent).astype(int)
 
-model = tf.keras.Sequential([tf.keras.layers.LSTM(units = rnn_units,
-                                                input_shape = (seq_len, n_dims),
-                                                recurrent_activation = 'relu',
-                                                return_sequences = True,
-                                                recurrent_initializer = 'glorot_uniform',
-                                                stateful = False,
-                                                dtype = 'float32'),
-                            tf.keras.layers.LSTM(units = rnn_units,
-                                                input_shape = (seq_len, n_dims),
-                                                recurrent_activation = 'relu',
-                                                return_sequences = True,
-                                                recurrent_initializer = 'glorot_uniform',
-                                                stateful = False,
-                                                dtype = 'float32'),
-                            tf.keras.layers.LSTM(units = rnn_units,
-                                                input_shape = (seq_len, n_dims),
-                                                recurrent_activation = 'relu',
-                                                return_sequences = True,
-                                                recurrent_initializer = 'glorot_uniform',
-                                                stateful = False,
-                                                dtype = 'float32'),
-                            tf.keras.layers.Dense(n_dims, dtype = 'float32')
+model = tf.keras.Sequential([
+    tf.keras.layers.LSTM(units = rnn_units,
+                        batch_input_shape = (1, seq_len, n_dims),
+                        recurrent_activation = 'sigmoid',
+                        return_sequences = True,
+                        recurrent_initializer = 'glorot_uniform',
+                        stateful = True,
+                        dtype = 'float32'),
+    # tf.keras.layers.LSTM(units = rnn_units,
+    #                     recurrent_activation = 'sigmoid',
+    #                     return_sequences = True,
+    #                     dtype = 'float32'),
+    # tf.keras.layers.LSTM(units = rnn_units,
+    #                     recurrent_activation = 'sigmoid',
+    #                     return_sequences = True,
+    #                     dtype = 'float32'),
+    tf.keras.layers.Dense(n_dims, dtype = 'float32')
 ])
 
 model.load_weights(tf.train.latest_checkpoint(checkpoint_dir))
@@ -82,8 +74,14 @@ plt.ion()
 
 fig_1, ax_1 = plt.subplots()
 
+for t in motion_generated:
+    print(t)
+# print(motion_generated)
+print(motion_generated.shape, seed_len, pred_len)
+
 for i in range(n_dims):
-  ax_1.plot(np.linspace(0, 200, len(motion_generated[:, i])), motion_generated[:, i])
+  ax_1.plot(np.linspace(0, seed_percent*100, seed_len), motion_generated[:seed_len, i], color = 'green')
+  ax_1.plot(np.linspace(seed_percent*100, pred_percent*100, pred_len - seed_len), motion_generated[seed_len:, i], color = 'red')
 
 # plotting the hand motion at nine timesteps
 
@@ -94,9 +92,6 @@ n_cols = np.ceil(np.sqrt(n_inc)).astype(int)
 fig_2 = plt.figure()
 
 t_steps = np.linspace(0, pred_len-1, n_inc).astype(int)
-# print(t_steps)
-
-# print(motion_generated.shape)
 
 cnt = 0
 for i in range(n_rows):
@@ -109,6 +104,8 @@ for i in range(n_rows):
             plot_hand(calculate_joint_locs(motion_generated[t_steps[cnt-1], :].copy()), 'green', ax=ax)
         else:
             plot_hand(calculate_joint_locs(motion_generated[t_steps[cnt-1], :].copy()), 'red', ax=ax)
+
+        # print(motion_generated[t_steps[cnt-1], :].copy())
 
         ax.set_title('{:.2f}%'.format(200*cnt/n_inc))
         ax.set_axis_off()
