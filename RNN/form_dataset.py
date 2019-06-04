@@ -6,7 +6,9 @@ from tqdm import tqdm
 
 data = []
 training_data = []
+training_labels = []
 testing_data = []
+testing_labels = []
 
 train_split = .8
 
@@ -20,21 +22,25 @@ for _, _, files in os.walk(dir):
         trial_data = np.load(dir + file)
         grasp_num = int(file.split('_')[1])
         group_num = np.where([grasp_num in g for g in groups])[0][0]
-        data.append(trial_data)
+        data.append((trial_data, group_num))
         group_data[group_num].append(trial_data)
 
 train_trials = random.sample(list(np.arange(len(data))), np.floor(.6*len(data)).astype(int))
 
-for i, d in tqdm(enumerate(data)):
+for i, (d, l) in tqdm(enumerate(data)):
     if i in train_trials:
         training_data.append(d)
+        training_labels.append(l)
     else:
         testing_data.append(d)
+        testing_labels.append(l)
 
 data = np.concatenate(data, axis = 0)
+with open('train_data_seperate.pickle', 'wb') as output_file:
+    pickle.dump((training_data, training_labels), output_file)
 training_data = np.concatenate(training_data, axis = 0)
 with open('test_data_seperate.pickle', 'wb') as output_file:
-    pickle.dump(testing_data, output_file)
+    pickle.dump((testing_data, testing_labels), output_file)
 testing_data = np.concatenate(testing_data, axis = 0)
 
 np.save('dataset_data', data)

@@ -5,30 +5,30 @@ import os
 import time
 import functools
 from IPython import display as ipythondisplay
-from training_funcs import *
+from training_funcs import compute_loss
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 seq_len = 10
 rnn_units = 500
-batch_size = 32
+batch_size = 128
 
-shift_len = 5
+shift_len = 1
 
-checkpoint_dir = './group_training_checkpoints'
+def split_input_target(chunk):
+    return chunk[:-shift_len], chunk[shift_len:]
+
+checkpoint_dir = './group_training_checkpoints/'
+
+fig = plt.figure()
 
 for g in range(1, 9):
-    checkpoint_prefixes = os.path.join(checkpoint_dir, "group_{group}_ckpt_{epoch}".format(group = g))
-
     train_data = np.load('group_data/{}_data.npy'.format(g)).astype('float32')
     n_dims = train_data.shape[1]
 
     train_dataset = tf.data.Dataset.from_tensor_slices(train_data)
-
     train_seqs = train_dataset.batch(seq_len+shift_len, drop_remainder = True)
-
     train_dataset = train_seqs.map(split_input_target)
-
     train_dataset = train_dataset.shuffle(1000).batch(batch_size, drop_remainder = True)
 
     model = tf.keras.Sequential([
@@ -48,7 +48,6 @@ for g in range(1, 9):
     optimizer = tf.train.AdamOptimizer()
 
     train_hist = []
-    plt.figure()
 
     for epoch in range(EPOCHS):
         hidden = model.reset_states()
@@ -64,7 +63,10 @@ for g in range(1, 9):
             optimizer.apply_gradients(zip(grads, model.trainable_variables))
             train_hist.append(train_loss.numpy().mean())
 
-        model.save_weights(checkpoint_prefix.format(epoch=epoch))
+    model.save_weights(checkpoint_dir + 'group_{group}_model.h5'.format(group = g))
 
-    plt.plot(train_hist)
-    plt.show()
+    ax = fig.add_subplot(2, 4, g)
+    ax.plot(train_hist)
+    ax.set_title(g)
+
+plt.show()

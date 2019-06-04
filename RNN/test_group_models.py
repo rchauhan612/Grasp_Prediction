@@ -15,24 +15,28 @@ sys.path.insert(0, '../general/')
 from hand_geometry_functions import *
 
 seq_len = 5
-rnn_units = 100
+rnn_units = 500
 
 pred_percent = 2
-seed_percent = .5
+seed_percent = .25
 
 n_inc = 9
 
-checkpoint_dir = './training_checkpoints'
-checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
+checkpoint_dir = './group_training_checkpoints/'
 
 with open('test_data_seperate.pickle', 'rb') as input_file:
-    raw_data = pickle.load(input_file)[0]
+    raw_data = pickle.load(input_file)
 
-test_trial_num = np.random.randint(len(raw_data))
-test_trial = raw_data[test_trial_num]
-test_conf = raw_data[test_trial_num][-1]
+motion_data = raw_data[0]
+group_nums = raw_data[1]
+
+test_trial_num = np.random.randint(len(motion_data))
+test_trial = motion_data[test_trial_num]
+test_conf = motion_data[test_trial_num][-1]
+test_group = group_nums[test_trial_num]+1
 # print(test_trial)
 # print(raw_data.shape)
+# checkpoint_prefix = os.path.join(checkpoint_dir, "group_{group}_ckpt_{epoch}")
 
 # raw_data_stacked = np.reshape(test_trial.astype('float32'), (test_trial.shape[0]*test_trial.shape[1], test_trial.shape[2]))
 n_dims = test_trial.shape[1]
@@ -40,30 +44,16 @@ seed_len = np.floor(test_trial.shape[0] * seed_percent).astype(int)
 pred_len = np.floor(test_trial.shape[0] * pred_percent).astype(int)
 
 model = tf.keras.Sequential([tf.keras.layers.LSTM(units = rnn_units,
-                                                input_shape = (seq_len, n_dims),
-                                                recurrent_activation = 'relu',
-                                                return_sequences = True,
-                                                recurrent_initializer = 'glorot_uniform',
-                                                stateful = False,
-                                                dtype = 'float32'),
-                            tf.keras.layers.LSTM(units = rnn_units,
-                                                input_shape = (seq_len, n_dims),
-                                                recurrent_activation = 'relu',
-                                                return_sequences = True,
-                                                recurrent_initializer = 'glorot_uniform',
-                                                stateful = False,
-                                                dtype = 'float32'),
-                            tf.keras.layers.LSTM(units = rnn_units,
-                                                input_shape = (seq_len, n_dims),
-                                                recurrent_activation = 'relu',
-                                                return_sequences = True,
-                                                recurrent_initializer = 'glorot_uniform',
-                                                stateful = False,
-                                                dtype = 'float32'),
-                            tf.keras.layers.Dense(n_dims, dtype = 'float32')
+                                                  input_shape = (seq_len, n_dims),
+                                                  recurrent_activation = 'sigmoid',
+                                                  return_sequences = True,
+                                                  recurrent_initializer = 'glorot_uniform',
+                                                  stateful = False,
+                                                  dtype = 'float32'),
+                              tf.keras.layers.Dense(n_dims, dtype = 'float32')
 ])
 
-model.load_weights(tf.train.latest_checkpoint(checkpoint_dir))
+model.load_weights(checkpoint_dir + 'group_{group}_model.h5'.format(group = test_group))
 
 model.reset_states()
 
