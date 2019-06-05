@@ -6,8 +6,10 @@ from tqdm import tqdm
 
 data = []
 training_data = []
+training_data_padded = []
 training_labels = []
 testing_data = []
+testing_data_padded = []
 testing_labels = []
 
 train_split = .8
@@ -28,19 +30,26 @@ for _, _, files in os.walk(dir):
 train_trials = random.sample(list(np.arange(len(data))), np.floor(.6*len(data)).astype(int))
 
 for i, (d, l) in tqdm(enumerate(data)):
+    d_pad = np.vstack((d, np.tile(d[[-1], :], (20, 1))))
     if i in train_trials:
         training_data.append(d)
+        training_data_padded.append(d_pad)
         training_labels.append(l)
     else:
         testing_data.append(d)
+        testing_data_padded.append(d_pad)
         testing_labels.append(l)
 
 data = np.concatenate(data, axis = 0)
 with open('train_data_seperate.pickle', 'wb') as output_file:
     pickle.dump((training_data, training_labels), output_file)
+with open('train_data_padded_seperate.pickle', 'wb') as output_file:
+    pickle.dump((training_data_padded, training_labels), output_file)
 training_data = np.concatenate(training_data, axis = 0)
 with open('test_data_seperate.pickle', 'wb') as output_file:
     pickle.dump((testing_data, testing_labels), output_file)
+with open('test_data_padded_seperate.pickle', 'wb') as output_file:
+    pickle.dump((testing_data_padded, testing_labels), output_file)
 testing_data = np.concatenate(testing_data, axis = 0)
 
 np.save('dataset_data', data)

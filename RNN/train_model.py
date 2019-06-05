@@ -12,7 +12,7 @@ import pickle
 
 seq_len = 20
 rnn_units = 100
-batch_size = 256
+batch_size = 128
 
 shift_len = 1
 
@@ -31,7 +31,7 @@ def split_input_target(chunk):
 checkpoint_dir = './training_checkpoints'
 checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
 
-with open('train_data_seperate.pickle', 'rb') as input_file:
+with open('train_data_padded_seperate.pickle', 'rb') as input_file:
     raw_data = pickle.load(input_file)[0]
 
 seqs = []
@@ -56,20 +56,20 @@ model = tf.keras.Sequential([
                         recurrent_initializer = 'glorot_uniform',
                         stateful = True,
                         dtype = 'float32'),
-    # tf.keras.layers.LSTM(units = rnn_units,
-    #                     recurrent_activation = 'sigmoid',
-    #                     return_sequences = True,
-    #                     dtype = 'float32'),
-    # tf.keras.layers.LSTM(units = rnn_units,
-    #                     recurrent_activation = 'sigmoid',
-    #                     return_sequences = True,
-    #                     dtype = 'float32'),
+    tf.keras.layers.LSTM(units = rnn_units,
+                        recurrent_activation = 'sigmoid',
+                        return_sequences = True,
+                        dtype = 'float32'),
+    tf.keras.layers.LSTM(units = rnn_units,
+                        recurrent_activation = 'sigmoid',
+                        return_sequences = True,
+                        dtype = 'float32'),
     tf.keras.layers.Dense(n_dims, dtype = 'float32')
 ])
 
 model.build((seq_len, n_dims))
 
-EPOCHS = 1
+EPOCHS = 3
 optimizer = tf.train.AdamOptimizer()
 
 train_hist = []

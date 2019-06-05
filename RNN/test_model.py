@@ -18,7 +18,7 @@ seq_len = 20
 rnn_units = 100
 
 pred_percent = 2
-seed_percent = .5
+seed_percent = .25
 
 n_inc = 9
 
@@ -29,6 +29,7 @@ with open('test_data_seperate.pickle', 'rb') as input_file:
     raw_data = pickle.load(input_file)[0]
 
 test_trial_num = np.random.randint(len(raw_data))
+print('Test trial number: {}'.format(test_trial_num))
 test_trial = raw_data[test_trial_num]
 test_conf = raw_data[test_trial_num][-1]
 
@@ -44,14 +45,14 @@ model = tf.keras.Sequential([
                         recurrent_initializer = 'glorot_uniform',
                         stateful = True,
                         dtype = 'float32'),
-    # tf.keras.layers.LSTM(units = rnn_units,
-    #                     recurrent_activation = 'sigmoid',
-    #                     return_sequences = True,
-    #                     dtype = 'float32'),
-    # tf.keras.layers.LSTM(units = rnn_units,
-    #                     recurrent_activation = 'sigmoid',
-    #                     return_sequences = True,
-    #                     dtype = 'float32'),
+    tf.keras.layers.LSTM(units = rnn_units,
+                        recurrent_activation = 'sigmoid',
+                        return_sequences = True,
+                        dtype = 'float32'),
+    tf.keras.layers.LSTM(units = rnn_units,
+                        recurrent_activation = 'sigmoid',
+                        return_sequences = True,
+                        dtype = 'float32'),
     tf.keras.layers.Dense(n_dims, dtype = 'float32')
 ])
 
@@ -65,7 +66,7 @@ input_eval = test_trial[:seed_len, :].astype('float32')
 motion_generated = input_eval
 
 for i in tqdm(range(pred_len-seed_len)):
-  pred = model(tf.expand_dims(motion_generated[-seq_len:, :], 0))
+  pred = model(tf.expand_dims(motion_generated[-seq_len:], 0))
   motion_generated = np.vstack((motion_generated, np.squeeze(pred)[-1]))
 
 motion_generated = np.array(motion_generated)
@@ -74,14 +75,13 @@ plt.ion()
 
 fig_1, ax_1 = plt.subplots()
 
-for t in motion_generated:
-    print(t)
-# print(motion_generated)
-print(motion_generated.shape, seed_len, pred_len)
-
 for i in range(n_dims):
-  ax_1.plot(np.linspace(0, seed_percent*100, seed_len), motion_generated[:seed_len, i], color = 'green')
-  ax_1.plot(np.linspace(seed_percent*100, pred_percent*100, pred_len - seed_len), motion_generated[seed_len:, i], color = 'red')
+    ax_1.plot(np.linspace(0, 100, test_trial.shape[0]), test_trial[:, i], color = 'black')
+    ax_1.plot(np.linspace(100, pred_percent*100, pred_len - test_trial.shape[0]),
+                np.repeat(test_trial[-1, i], pred_len - test_trial.shape[0]),
+                color = 'black')
+    ax_1.plot(np.linspace(0, seed_percent*100, seed_len), motion_generated[:seed_len, i], color = 'green')
+    ax_1.plot(np.linspace(seed_percent*100, pred_percent*100, pred_len - seed_len), motion_generated[seed_len:, i], color = 'red')
 
 # plotting the hand motion at nine timesteps
 
