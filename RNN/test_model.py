@@ -15,7 +15,7 @@ sys.path.insert(0, '../general/')
 from hand_geometry_functions import *
 
 seq_len = 20
-rnn_units = 100
+rnn_units = 200
 
 pred_percent = 2
 seed_percent = .25

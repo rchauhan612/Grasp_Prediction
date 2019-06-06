@@ -9,10 +9,11 @@ from training_funcs import compute_loss
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import pickle
+from itertools import zip_longest
 
 seq_len = 20
-rnn_units = 100
-batch_size = 128
+rnn_units = 200
+batch_size = 1024
 
 shift_len = 1
 
@@ -22,11 +23,11 @@ def split_sequences(trial, seq_len, shift_len, seqs_list = []):
         if i+seq_len+shift_len > max_ind:
             break
         else:
-            seqs.append(trial[i:i+shift_len+seq_len, :])
+            seqs_list.append(trial[i:i+shift_len+seq_len, :])
     return seqs_list
 
 def split_input_target(chunk):
-    return chunk[:-shift_len], chunk[shift_len:]
+    return chunk[:-shift_len], chunk[seq_len:]
 
 checkpoint_dir = './training_checkpoints'
 checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
@@ -34,19 +35,31 @@ checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
 with open('train_data_padded_seperate.pickle', 'rb') as input_file:
     raw_data = pickle.load(input_file)[0]
 
-seqs = []
+train_seqs = []
 for trial in raw_data:
-    seqs = split_sequences(trial.astype('float32'), seq_len, shift_len, seqs_list = seqs)
+    train_seqs = split_sequences(trial.astype('float32'), seq_len, shift_len, seqs_list = train_seqs)
 
-seqs = np.array(seqs)
+train_seqs = np.array(train_seqs)
 
-print(seqs.shape)
+with open('test_data_padded_seperate.pickle', 'rb') as input_file:
+    raw_data = pickle.load(input_file)[0]
 
-n_dims = seqs.shape[2]
+test_seqs = []
+for trial in raw_data:
+    test_seqs = split_sequences(trial.astype('float32'), seq_len, shift_len, seqs_list = test_seqs)
 
-train_seqs = tf.data.Dataset.from_tensor_slices(seqs)
+test_seqs = np.array(test_seqs)
+
+n_dims = train_seqs.shape[2]
+
+train_seqs = tf.data.Dataset.from_tensor_slices(train_seqs)
 train_dataset = train_seqs.map(split_input_target)
 train_dataset = train_dataset.shuffle(1000).batch(batch_size, drop_remainder = True)
+
+test_seqs = tf.data.Dataset.from_tensor_slices(test_seqs)
+test_dataset = test_seqs.map(split_input_target)
+test_dataset = test_dataset.shuffle(1000).batch(batch_size, drop_remainder = True)
+
 
 model = tf.keras.Sequential([
     tf.keras.layers.LSTM(units = rnn_units,
@@ -69,27 +82,39 @@ model = tf.keras.Sequential([
 
 model.build((seq_len, n_dims))
 
-EPOCHS = 3
-optimizer = tf.train.AdamOptimizer()
+print(model.summary())
+input('')
+
+EPOCHS = 10
+optimizer = tf.train.AdamOptimizer(learning_rate = 0.00001)
 
 train_hist = []
+test_hist = []
 plt.figure()
 
 for epoch in range(EPOCHS):
     hidden = model.reset_states()
+    print('EPOCH: {}'.format(epoch))
+    print('Training')
     for i, (train_inp, train_target) in enumerate(tqdm(train_dataset)):
-
         with tf.GradientTape() as tape:
-
             predictions = model(train_inp)
             train_loss = compute_loss(train_target, predictions)
 
         grads = tape.gradient(train_loss, model.trainable_variables)
-
         optimizer.apply_gradients(zip(grads, model.trainable_variables))
         train_hist.append(train_loss.numpy().mean())
+
+    print('Testing')
+    for i, (test_inp, test_target) in enumerate(tqdm(test_dataset)):
+        predictions = model(test_inp)
+        test_loss = compute_loss(test_target, predictions)
+        test_hist.append(test_loss.numpy().mean())
+
 
     model.save_weights(checkpoint_prefix.format(epoch=epoch))
 
 plt.plot(train_hist)
+plt.plot(test_hist)
+
 plt.show()
