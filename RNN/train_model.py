@@ -13,7 +13,7 @@ from itertools import zip_longest
 
 seq_len = 20
 rnn_units = 200
-batch_size = 1024
+batch_size = 512
 
 shift_len = 1
 
@@ -85,36 +85,53 @@ model.build((seq_len, n_dims))
 print(model.summary())
 input('')
 
-EPOCHS = 10
+EPOCHS = 20
 optimizer = tf.train.AdamOptimizer(learning_rate = 0.00001)
 
 train_hist = []
+train_iter = []
 test_hist = []
+test_iter = []
 plt.figure()
+
+iter_cnt = 0
 
 for epoch in range(EPOCHS):
     hidden = model.reset_states()
     print('EPOCH: {}'.format(epoch))
-    print('Training')
-    for i, (train_inp, train_target) in enumerate(tqdm(train_dataset)):
+    # print('Training')
+    for i, ((train_inp, train_target), test_data) in enumerate(tqdm(zip_longest(train_dataset, test_dataset))):
         with tf.GradientTape() as tape:
             predictions = model(train_inp)
             train_loss = compute_loss(train_target, predictions)
 
         grads = tape.gradient(train_loss, model.trainable_variables)
+
+        if test_data is not None:
+            (test_inp, test_target) = test_data
+            predictions = model(test_inp)
+            test_loss = compute_loss(test_target, predictions)
+            test_hist.append(test_loss.numpy().mean())
+            test_iter.append(iter_cnt)
+
         optimizer.apply_gradients(zip(grads, model.trainable_variables))
         train_hist.append(train_loss.numpy().mean())
+        train_iter.append(iter_cnt)
 
-    print('Testing')
-    for i, (test_inp, test_target) in enumerate(tqdm(test_dataset)):
-        predictions = model(test_inp)
-        test_loss = compute_loss(test_target, predictions)
-        test_hist.append(test_loss.numpy().mean())
+        iter_cnt += 1
+
+    # print('Testing')
+    # for i, (test_inp, test_target) in enumerate(tqdm(test_dataset)):
+    #     predictions = model(test_inp)
+    #     test_loss = compute_loss(test_target, predictions)
+    #     test_hist.append(test_loss.numpy().mean())
 
 
     model.save_weights(checkpoint_prefix.format(epoch=epoch))
 
-plt.plot(train_hist)
-plt.plot(test_hist)
+np.save(checkpoint_dir+'/loss_hist', np.array(test_hist))
+
+plt.plot(np.array(train_iter), train_hist)
+plt.plot(np.array(test_iter), test_hist)
 
 plt.show()
