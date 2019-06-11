@@ -1,10 +1,11 @@
 import tensorflow as tf
-tf.enable_eager_execution()
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+tf.enable_eager_execution(config = config)
 import numpy as np
 import os
 import time
 import functools
-from IPython import display as ipythondisplay
 from training_funcs import *
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -15,7 +16,7 @@ sys.path.insert(0, '../general/')
 from hand_geometry_functions import *
 
 seq_len = 20
-rnn_units = 200
+rnn_units = 500
 
 pred_percent = 2
 seed_percent = .25
@@ -44,19 +45,16 @@ test_trial_extended = np.vstack((test_trial, np.tile(test_trial[[-1], :], (pred_
 print('Test trial number: {}\t Grasp Number: {}'.format(test_trial_num, test_trial_group_num))
 
 model = tf.keras.Sequential([
-    tf.keras.layers.LSTM(units = rnn_units,
+    tf.keras.layers.CuDNNLSTM(units = rnn_units,
                         batch_input_shape = (1, seq_len, n_dims),
-                        recurrent_activation = 'sigmoid',
                         return_sequences = True,
                         recurrent_initializer = 'glorot_uniform',
                         stateful = True,
                         dtype = 'float32'),
-    tf.keras.layers.LSTM(units = rnn_units,
-                        recurrent_activation = 'sigmoid',
+    tf.keras.layers.CuDNNLSTM(units = rnn_units,
                         return_sequences = True,
                         dtype = 'float32'),
-    tf.keras.layers.LSTM(units = rnn_units,
-                        recurrent_activation = 'sigmoid',
+    tf.keras.layers.CuDNNLSTM(units = rnn_units,
                         return_sequences = True,
                         dtype = 'float32'),
     tf.keras.layers.Dense(n_dims, dtype = 'float32')
@@ -71,11 +69,12 @@ model.reset_states()
 motion_generated = []
 for i in tqdm(range(1, test_trial_extended.shape[0])):
     if i < seq_len:
-        pred = model(tf.expand_dims(test_trial_extended[:i+1, :].astype('float32'), 0))
-        pred = model(tf.expand_dims(test_trial_extended[:i+1, :].astype('float32'), 0))
+        # pred = model(tf.expand_dims(test_trial_extended[:i+1, :].astype('float32'), 0))
+        pred = np.expand_dims(test_trial_extended[:i+1, :].astype('float32'), 0)
     else:
         pred = model(tf.expand_dims(test_trial_extended[i+1-seq_len:i+1, :].astype('float32'), 0))
 
+    # print(pred.shape)
     motion_generated.append(np.squeeze(pred)[-1])
 
 motion_generated = np.array(motion_generated)
@@ -85,8 +84,8 @@ plt.ion()
 fig_1, ax_1 = plt.subplots()
 
 for i in range(n_dims):
-    ax_1.plot(np.linspace(0, pred_len, test_trial_extended.shape[0]), test_trial_extended[:, i], color = 'black')
-    ax_1.plot(np.linspace(1, pred_len, test_trial_extended.shape[0]-1), motion_generated[:, i], color = 'red')
+    ax_1.plot(np.linspace(0, pred_len, test_trial_extended.shape[0]), test_trial_extended[:, i], color = 'C0')
+    ax_1.plot(np.linspace(1, pred_len, test_trial_extended.shape[0]-1), motion_generated[:, i], color = 'C1')
 
 # plotting the hand motion at nine timesteps
 

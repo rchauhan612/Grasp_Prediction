@@ -4,7 +4,6 @@ import numpy as np
 import os
 import time
 import functools
-from IPython import display as ipythondisplay
 from training_funcs import compute_loss
 from tqdm import tqdm
 import matplotlib.pyplot as plt
