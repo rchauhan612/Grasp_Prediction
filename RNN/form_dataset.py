@@ -5,6 +5,8 @@ import random
 from tqdm import tqdm
 
 data = []
+all_data = []
+all_labels = []
 training_data = []
 training_data_padded = []
 training_labels = []
@@ -24,21 +26,23 @@ for _, _, files in os.walk(dir):
         trial_data = np.load(dir + file)
         grasp_num = int(file.split('_')[1])
         group_num = np.where([grasp_num in g for g in groups])[0][0]
-        data.append((trial_data, group_num))
+        data.append((trial_data, group_num, grasp_num))
         group_data[group_num].append(trial_data)
 
 train_trials = random.sample(list(np.arange(len(data))), np.floor(.6*len(data)).astype(int))
 
-for i, (d, l) in tqdm(enumerate(data)):
+for i, (d, group_l, grasp_l) in tqdm(enumerate(data)):
     d_pad = np.vstack((d, np.tile(d[[-1], :], (20, 1))))
+    all_data.append(d)
+    all_labels.append((group_l+1, grasp_l))
     if i in train_trials:
         training_data.append(d)
         training_data_padded.append(d_pad)
-        training_labels.append(l)
+        training_labels.append((group_l+1, grasp_l))
     else:
         testing_data.append(d)
         testing_data_padded.append(d_pad)
-        testing_labels.append(l)
+        testing_labels.append((group_l+1, grasp_l))
 
 data = np.concatenate(data, axis = 0)
 with open('train_data_seperate.pickle', 'wb') as output_file:
@@ -50,6 +54,10 @@ with open('test_data_seperate.pickle', 'wb') as output_file:
     pickle.dump((testing_data, testing_labels), output_file)
 with open('test_data_padded_seperate.pickle', 'wb') as output_file:
     pickle.dump((testing_data_padded, testing_labels), output_file)
+
+with open('all_data_seperate.pickle', 'wb') as output_file:
+    pickle.dump((all_data, all_labels), output_file)
+
 testing_data = np.concatenate(testing_data, axis = 0)
 
 np.save('dataset_data', data)
