@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 # %%
 rnn_units = 200
-batch_size = 1
+batch_size = 20
 n_dims = 16
 
 test_groups = False
@@ -108,7 +108,7 @@ print(model.summary())
 # %%
 
 print('Training model...')
-EPOCHS = 5
+EPOCHS = 100
 learning_rate = 0.000001
 # optimizer = tf.train.AdagradOptimizer(learning_rate)
 # optimizer = tf.train.AdamOptimizer(learning_rate)
