@@ -33,7 +33,8 @@ test_groups = False
 num_cat = 8 if test_groups else len(test_set)
 train_split = 0.66
 
-TRAIN = False
+TRAIN = input('Train the model? (y/n)')
+TRAIN = True if Train == 'y' else False
 
 # %%
 
@@ -56,40 +57,51 @@ def normalize_data(data, scaler = None):
 
     return scaler, transformed_data
 
+def denormalize_data(data, scaler):
+    return scaler.inverse_transform(data, scaler)
+
 def create_sequences(traj_data, labels, num_seqs = 5, train_split = 0.66, which_seqs = None,
                         include_set = None):
     seq_list = []
-    label_list = []
+    # label_list = []
+    # next_step_list = []
+    # motion_complete_list = []
+    y_list = [] # network desired output
 
     test_set_norm = np.arange(len(test_set)) + 1
 
     for trial, label in zip(traj_data, labels):
-        if include_set is None:
+        if include_set is None: # create list of possible labels to process if not provided
             include_set = np.arange(num_cat) + 1
             include_set = include_set.tolist()
-        if label in include_set:
-            label = include_set.index(label) + 1
-            if which_seqs == None:
-                inds = np.linspace(0, len(trial), num_seqs + 1)[1:].astype('int')
-            else:
-                inds = np.linspace(0, len(trial), num_seqs + 1)[1:which_seqs+1].astype('int')
+
+        if label in include_set: # if the current data set is supposed to be checked
+            # label = include_set.index(label) + 1
+            if which_seqs == None: # use all the motion <== default behavior
+                inds = np.linspace(0, len(trial)-1, num_seqs + 1)[1:].astype('int')
+            else: # use up to the amount of motion specified
+                inds = np.linspace(0, len(trial)-1, num_seqs + 1)[1:which_seqs+1].astype('int')
 
             for ind in inds:
-                seq_list.append(trial[:ind])
+                seq_list.append(trial[:ind]) # motion up to specified amount
+                next_config = trial[ind] # motion right after specified amount
+                motion_complete = [ind / len(trial)]
                 temp = np.zeros(num_cat)
                 temp[label-1] = 1
-                label_list.append(temp)
-                # print(temp)
+                label_out = temp # appending the label
+
+                y_list.append(np.concatenate([label_out, motion_complete, next_config]))
 
     print('Number of sequences: {}'.format(len(seq_list)))
 
     max_len = max([seq.shape[0] for seq in seq_list])
-    seq_list = [np.vstack((seq, np.repeat(np.atleast_2d(seq[-1, :]), max_len - seq.shape[0], axis = 0))) for seq in seq_list]
-    # seq_list = [np.vstack((np.zeros((max_len - seq.shape[0] , n_dims)), seq)) for seq in seq_list]
+    seq_list = [np.vstack((np.repeat(np.atleast_2d(seq[0, :]), max_len - seq.shape[0], axis = 0), seq)) for seq in seq_list] # preppend first configuration
+    # seq_list = [np.vstack((seq, np.repeat(np.atleast_2d(seq[-1, :]), max_len - seq.shape[0], axis = 0))) for seq in seq_list] # append final configuration at the end
+    # seq_list = [np.vstack((np.zeros((max_len - seq.shape[0] , n_dims)), seq)) for seq in seq_list] # preppend zeros
 
     train_size = int(train_split * len(seq_list))
 
-    data = tf.data.Dataset.from_tensor_slices((seq_list, label_list))
+    data = tf.data.Dataset.from_tensor_slices((seq_list, y_list))
     data = data.shuffle(len(seq_list)+1)
 
     train_data = data.take(train_size).batch(batch_size, drop_remainder = True)
@@ -103,6 +115,13 @@ def cce_loss(pred, truth):
     cce = tf.keras.losses.CategoricalCrossentropy()
     return cce(pred, truth)
 
+def calc_loss(pred, truth):
+    pred_label, pred_motion_complete, pred_config = tf.slice(pred, [num_cat, 1, n_dims], axis = 1)
+    truth_label, truth_motion_complete, truth_config = tf.slice(truth, [num_cat, 1, n_dims], axis = 1)
+    label_loss = tf.keras.losses.categorical_crossentropy(pred_label, truth_label)
+    motion_complete_loss = tf.keras.losses.MSE(pred_motion_complete, truth_motion_complete)
+    config_loss = tf.keras.losses.MSE(pred_config, truth_config)
+
 def calc_acc(pred, truth):
     pred = pred.numpy()
     truth = truth.numpy()
@@ -110,16 +129,9 @@ def calc_acc(pred, truth):
     acc = []
     for p, t in zip(pred, truth):
         acc.append(np.argmax(p) == np.argmax(t))
-    #     print(p)
-    #     print(t)
-    #     print(np.argmax(p))
-    #     print(np.argmax(t))
-    #     input('')
-    #
-    # print(acc)
-    # input('')
 
     return np.mean(acc)
+
 # %%
 
 def pred(model, traj, label):
@@ -167,7 +179,7 @@ if TRAIN:
                             return_sequences = False,
                             dtype = 'float32'),
         # tf.keras.layers.Dropout(rate = .8),
-        tf.keras.layers.Dense(num_cat, activation=tf.nn.softmax, dtype = 'float32')
+        tf.keras.layers.Dense(n_dims + 2, activation=tf.nn.softmax, dtype = 'float32')
     ])
 
     model.build((None, n_dims))
@@ -274,6 +286,8 @@ for i, dat in tqdm(enumerate(test_data)):
 
         sub_traj = traj[:, :int(num_mes * j / num_splits), :]
         predictions = model(sub_traj)
+model.load_weights(tf.train.latest_checkpoint(checkpoint_dir))
+model.reset_states()
         sparse_pred = np.argmax(predictions.numpy())
         test_res[1].append(sparse_pred)
 
