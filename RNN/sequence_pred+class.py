@@ -23,7 +23,7 @@ from make_conf_matrix import plot_confusion_matrix
 
 # %%
 rnn_units = 300
-batch_size = 128
+batch_size = 64
 n_dims = 16
 
 # test_set = [2, 14, 20, 17, 10, 22, 15, 31]
@@ -33,8 +33,11 @@ test_groups = False
 num_cat = 8 if test_groups else len(test_set)
 train_split = 0.66
 
-TRAIN = input('Train the model? (y/n)')
-TRAIN = True if Train == 'y' else False
+TRAIN = input('Train the model (y/n)? ')
+TRAIN = True if TRAIN == 'y' else False
+
+checkpoint_dir = './training_checkpoints_pred+class'
+
 
 # %%
 
@@ -115,28 +118,39 @@ def cce_loss(pred, truth):
     cce = tf.keras.losses.CategoricalCrossentropy()
     return cce(pred, truth)
 
-def calc_loss(pred, truth):
-    pred_label, pred_motion_complete, pred_config = tf.slice(pred, [num_cat, 1, n_dims], axis = 1)
-    truth_label, truth_motion_complete, truth_config = tf.slice(truth, [num_cat, 1, n_dims], axis = 1)
+def calc_loss(pred, truth, splits = [num_cat, 1, n_dims]):
+    pred_label, pred_motion_complete, pred_config = tf.split(pred, splits, axis = 1)
+    truth_label, truth_motion_complete, truth_config = tf.split(truth, splits, axis = 1)
+
     label_loss = tf.keras.losses.categorical_crossentropy(pred_label, truth_label)
     motion_complete_loss = tf.keras.losses.MSE(pred_motion_complete, truth_motion_complete)
     config_loss = tf.keras.losses.MSE(pred_config, truth_config)
 
-def calc_acc(pred, truth):
-    pred = pred.numpy()
-    truth = truth.numpy()
+    return label_loss + motion_complete_loss + config_loss
+
+def calc_acc(pred, truth, splits = [num_cat, 1, n_dims]):
+    pred_label, _, _ = tf.split(pred, splits, axis = 1)
+    truth_label, _, _ = tf.split(truth, splits, axis = 1)
+
+    pred_label = pred_label.numpy()
+    truth_label = truth_label.numpy()
 
     acc = []
-    for p, t in zip(pred, truth):
+    for p, t in zip(pred_label, truth_label):
         acc.append(np.argmax(p) == np.argmax(t))
 
     return np.mean(acc)
 
 # %%
 
-def pred(model, traj, label):
-    pred_class = np.amax(model(traj)) + 1
-    print('True class: {}\t Predicted class: {}'.format(label, pred_class))
+def run_model(model, input, splits = [num_cat, 1, n_dims]):
+    out_layer = model(input)
+    pred_label, pred_motion_complete, pred_config = tf.split(out_layer, splits, axis = 1)
+
+    pred_label = tf.nn.softmax(pred_label)
+    pred_motion_complete = tf.nn.leaky_relu(pred_motion_complete)
+
+    return tf.concat([pred_label, pred_motion_complete, pred_config], axis = 1)
 
 # %%
 
@@ -179,7 +193,7 @@ if TRAIN:
                             return_sequences = False,
                             dtype = 'float32'),
         # tf.keras.layers.Dropout(rate = .8),
-        tf.keras.layers.Dense(n_dims + 2, activation=tf.nn.softmax, dtype = 'float32')
+        tf.keras.layers.Dense(num_cat + 1 + n_dims, dtype = 'float32')
     ])
 
     model.build((None, n_dims))
@@ -189,12 +203,10 @@ if TRAIN:
 
 if TRAIN:
     print('Training model...')
-
-    checkpoint_dir = './training_checkpoints_class'
     checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
 
     EPOCHS = 10000
-    learning_rate = 0.00001
+    learning_rate = 0.0001
     # optimizer = tf.train.AdagradOptimizer(learning_rate)
     optimizer = tf.train.AdamOptimizer(learning_rate)
     # optimizer = tf.train.RMSPropOptimizer(learning_rate, centered = True)
@@ -210,11 +222,11 @@ if TRAIN:
         hidden = model.reset_states()
         for _, dat in tqdm(enumerate(train_data), total = int(train_split * num_seqs / batch_size)):
             traj = tf.cast(dat[0], dtype = tf.float32)
-            label = dat[1]
+            label = tf.cast(dat[1], dtype = tf.float32)
 
             with tf.GradientTape() as tape:
-                pred = model(traj)
-                current_loss = cce_loss(pred, label)
+                pred = run_model(model, traj)
+                current_loss = calc_loss(pred, label)
                 current_acc = calc_acc(pred, label)
 
             grads = tape.gradient(current_loss, model.trainable_variables)
@@ -264,7 +276,6 @@ model = tf.keras.Sequential([
 model.build((None, n_dims))
 print(model.summary())
 
-checkpoint_dir = './training_checkpoints_class'
 model.load_weights(tf.train.latest_checkpoint(checkpoint_dir))
 model.reset_states()
 
@@ -285,9 +296,7 @@ for i, dat in tqdm(enumerate(test_data)):
         test_res[0].append(sparse_label)
 
         sub_traj = traj[:, :int(num_mes * j / num_splits), :]
-        predictions = model(sub_traj)
-model.load_weights(tf.train.latest_checkpoint(checkpoint_dir))
-model.reset_states()
+        predictions = run_model(model, sub_traj)
         sparse_pred = np.argmax(predictions.numpy())
         test_res[1].append(sparse_pred)
 
