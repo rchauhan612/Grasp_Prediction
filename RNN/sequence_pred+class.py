@@ -19,6 +19,8 @@ import pickle
 # from tqdm import tqdm_notebook as tqdm
 from tqdm import tqdm
 
+import random
+
 from make_conf_matrix import plot_confusion_matrix
 
 # %%
@@ -98,9 +100,20 @@ def create_sequences(traj_data, labels, num_seqs = 5, train_split = 0.66, which_
     print('Number of sequences: {}'.format(len(seq_list)))
 
     max_len = max([seq.shape[0] for seq in seq_list])
-    seq_list = [np.vstack((np.repeat(np.atleast_2d(seq[0, :]), max_len - seq.shape[0], axis = 0), seq)) for seq in seq_list] # preppend first configuration
+    # seq_list = [np.vstack((np.repeat(np.atleast_2d(seq[0, :]), max_len - seq.shape[0], axis = 0), seq)) for seq in seq_list] # preppend first configuration
     # seq_list = [np.vstack((seq, np.repeat(np.atleast_2d(seq[-1, :]), max_len - seq.shape[0], axis = 0))) for seq in seq_list] # append final configuration at the end
     # seq_list = [np.vstack((np.zeros((max_len - seq.shape[0] , n_dims)), seq)) for seq in seq_list] # preppend zeros
+
+    new_seq_list = []
+    for seq in seq_list:
+        new_seq = []
+        for i in range(n_dims):
+            new_seq.append(np.interp(np.linspace(0, 1, max_len), np.linspace(0, 1, len(seq[:, i])), seq[:, i]))
+        new_seq_list.append(np.transpose(np.array(new_seq)))
+
+    seq_list = new_seq_list.copy()
+
+    # print(seq_list[0].shape)
 
     train_size = int(train_split * len(seq_list))
 
@@ -110,7 +123,7 @@ def create_sequences(traj_data, labels, num_seqs = 5, train_split = 0.66, which_
     train_data = data.take(train_size).batch(batch_size, drop_remainder = True)
     test_data = data.skip(train_size)
 
-    return train_data, test_data, len(seq_list)
+    return train_data, test_data, len(seq_list), max_len
 
 # %%
 
@@ -126,9 +139,14 @@ def calc_loss(pred, truth, splits = [num_cat, 1, n_dims]):
     motion_complete_loss = tf.keras.losses.MSE(pred_motion_complete, truth_motion_complete)
     config_loss = tf.keras.losses.MSE(pred_config, truth_config)
 
-    return label_loss + motion_complete_loss + config_loss
+    # return label_loss + motion_complete_loss + config_loss
+    return label_loss + motion_complete_loss
 
-def calc_acc(pred, truth, splits = [num_cat, 1, n_dims]):
+def split_model_output(pred, splits = [num_cat, 1, n_dims]):
+    pred_label, pred_motion_complete, pred_config = tf.split(pred, splits, axis = 1)
+    return pred_label, pred_motion_complete, pred_config
+
+def calc_label_acc(pred, truth, splits = [num_cat, 1, n_dims]):
     pred_label, _, _ = tf.split(pred, splits, axis = 1)
     truth_label, _, _ = tf.split(truth, splits, axis = 1)
 
@@ -170,7 +188,7 @@ normalizing_scaler, trajs = normalize_data(trajs)
 # %%
 
 print('Forming dataset...')
-train_data, test_data, num_seqs = create_sequences(trajs, labels, num_seqs = 2, which_seqs = None, include_set = test_set)
+train_data, test_data, num_seqs, max_len = create_sequences(trajs, labels, num_seqs = 1, which_seqs = None, include_set = test_set)
 
 # %%
 
@@ -201,6 +219,10 @@ if TRAIN:
 
 # %%
 
+# tf.shape(train_data)
+
+# %%
+
 if TRAIN:
     print('Training model...')
     checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
@@ -215,7 +237,8 @@ if TRAIN:
     # for epoch in range(EPOCHS):
     this_epoch_acc = 0
     epoch = 0
-    while np.mean(this_epoch_acc) < .95 and epoch < EPOCHS:
+    n_segs = 4
+    while np.mean(this_epoch_acc) < .99 and epoch < EPOCHS:
         # print('Epoch: {}/{}'.format(epoch+1, EPOCHS))
         this_epoch_loss = []
         this_epoch_acc = []
@@ -224,15 +247,17 @@ if TRAIN:
             traj = tf.cast(dat[0], dtype = tf.float32)
             label = tf.cast(dat[1], dtype = tf.float32)
 
-            with tf.GradientTape() as tape:
-                pred = run_model(model, traj)
-                current_loss = calc_loss(pred, label)
-                current_acc = calc_acc(pred, label)
+            for i in range(n_segs):
+                with tf.GradientTape() as tape:
+                    traj_seg = tf.slice(traj, [0, 0, 0], [batch_size, max_len//(i+1), n_dims])
+                    pred = run_model(model, traj_seg)
+                    current_loss = calc_loss(pred, label)
+                    current_acc = calc_label_acc(pred, label)
 
-            grads = tape.gradient(current_loss, model.trainable_variables)
-            optimizer.apply_gradients(zip(grads, model.trainable_variables))
-            this_epoch_loss.append(current_loss)
-            this_epoch_acc.append(current_acc)
+                grads = tape.gradient(current_loss, model.trainable_variables)
+                optimizer.apply_gradients(zip(grads, model.trainable_variables))
+                this_epoch_loss.append(current_loss)
+                this_epoch_acc.append(current_acc)
 
         loss_hist.append(np.mean(this_epoch_loss))
         acc_hist.append(np.mean(this_epoch_acc))
@@ -254,6 +279,9 @@ if TRAIN:
 
 # %%
 
+# print(n_dims)
+
+# %%
 model = tf.keras.Sequential([
     tf.keras.layers.CuDNNLSTM(units = rnn_units,
                         batch_input_shape = (1, None, n_dims),
@@ -270,7 +298,7 @@ model = tf.keras.Sequential([
                         return_sequences = False,
                         dtype = 'float32'),
     # tf.keras.layers.Dropout(rate = .8),
-    tf.keras.layers.Dense(num_cat, activation=tf.nn.softmax, dtype = 'float32')
+    tf.keras.layers.Dense(num_cat + 1 + n_dims, dtype = 'float32')
 ])
 
 model.build((None, n_dims))
@@ -281,24 +309,39 @@ model.reset_states()
 
 # %%
 
-test_res = [[], []]
-num_splits = 7
+test_res = [[] for i in range(7)] # true+pred label, true+pred motion complete, true+pred config
+num_splits = 5
 for i, dat in tqdm(enumerate(test_data)):
 
     traj = tf.expand_dims(tf.cast(dat[0], dtype = tf.float32), axis = 0)
     traj = traj.numpy()
-    num_mes = traj.shape[1]
+    num_mes = traj.shape[1]-1
 
-    label = dat[1]
+    label = dat[1][:num_cat]
     sparse_label = np.argmax(label.numpy())
 
     for j in range(1, num_splits+1):
-        test_res[0].append(sparse_label)
 
         sub_traj = traj[:, :int(num_mes * j / num_splits), :]
         predictions = run_model(model, sub_traj)
-        sparse_pred = np.argmax(predictions.numpy())
-        test_res[1].append(sparse_pred)
+        pred_label, pred_motion_complete, pred_config = split_model_output(predictions)
+
+        sparse_label_pred = np.argmax(pred_label.numpy())
+        test_res[0].append(sparse_label)
+        test_res[1].append(sparse_label_pred)
+        test_res[2].append(j/num_splits)
+        test_res[3].append(pred_motion_complete)
+        test_res[4].append(sub_traj)
+        test_res[5].append(pred_config.numpy())
+        test_res[6].append(j)
+
+# %%
+
+# for i, dat in tqdm(enumerate(test_data)):
+#     print(test_res[4][0].shape)
+#     foo = input('')
+#     if foo == 'n':
+#         break;
 
 # %%
 
@@ -310,6 +353,8 @@ test_acc = [np.mean(gr) for gr in test_acc]
 
 print('Total Accuracy: {}'.format(np.mean(test_acc)))
 
+# %%
+
 plt.figure()
 plt.bar(np.arange(1, 34), np.array(test_acc))
 plt.xlabel('Grasp')
@@ -319,4 +364,19 @@ plt.ylabel('Accuracy (%)')
 # %%
 
 plot_confusion_matrix(test_res[0], test_res[1], classes = 1+np.arange(33), normalize = True)
+plt.show()
+
+# %%
+
+trial = random.randint(0,5942)
+# print(test_res[5][trial])
+
+
+plt.figure()
+for i in range(n_dims):
+    traj = np.squeeze(test_res[4][trial][:, :, i])
+    plt.plot(np.arange(len(traj)), traj, 'k')
+    plt.plot(len(traj), np.squeeze(test_res[5][trial])[i], 'ro')
+
+plt.xlim([0, len(traj)+10])
 plt.show()
